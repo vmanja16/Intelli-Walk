@@ -27,17 +27,17 @@
 #define	SYS_FREQ	80000000		// frequency we're running at
 
 
-
+// delay function for TRIGGER
 void ShortDelay(                       // Short Delay 
   UINT32 DelayCount)                   // Delay Time (CoreTimer Ticks) 
 { 
   UINT32 StartTime;                    // Start Time 
   StartTime = ReadCoreTimer();         // Get CoreTimer value for StartTime 
-  while ( (UINT32)(ReadCoreTimer() - StartTime) < DelayCount ) {}; 
+  while ((UINT32)(ReadCoreTimer() - StartTime) < DelayCount ) {}; 
 } 
 
 
-// initialize a timer to make an interrupt every .05 seconds to pull TRIGGER high for 10us. 
+// initialize a timer to make an interrupt every .5 seconds. 
 /*void initTimer1(void)
 {
     T1CON = 0x0000;         // DISABLE TIMER
@@ -53,57 +53,45 @@ void ShortDelay(                       // Short Delay
 }*/
 /*void __ISR(0,ipl3)Timer1Handler(void)
 {
-    // set TRIGGER to HIGH for 10 us
+    // our code for shaft encoder
     
     
-    
-    IFS0 = 0x00000010;      // clear interrupt flag again
+    IFS0 = 0x00000010;                          // clear interrupt flag again
 }*/
 
-
-#define LED_BLINK_RATE 200
 int main(void)
 {
-    int	dmaChn=0;		
-    
-    mPORTASetPinsDigitalOut(0xff);
-	mPORTAClearBits(0xff);		
+       
+    mPORTASetPinsDigitalOut(0xff);              // set LEDS as digital outputs
+	mPORTAClearBits(0xff);                      // clear LEDS
     	
-
     int a;
-    AD1PCFG = 0b0010001;        // RB0, RB4 set to digital pins
-    TRISB = 0x01;               // RB0 as Input PIN (ECHO)
-                                // RB4 is Output PIN (TRIGGER)  
-    TRISD = 0x00;               // LCD Pins as Output
+    AD1PCFG = 0b0010001;                        // RB0, RB4 set to digital pins
+    TRISB = 0x01;                               // RB0 as Input PIN (ECHO)
+                                                // RB4 is Output PIN (TRIGGER)  
+    TRISD = 0x00;                               // LCD Pins as Output
     
     while(1)
     {
-        TMR1 = 0x0000;               // reset TMR1
-        PORTB = 0b00010000;          //TRIGGER HIGH (use port to write and TRIS TO set INPUT/OUTPUT)
-        ShortDelay( 10 * US_TO_CT_TICKS );   // Delay 50uS  
-        PORTB = 0b00000000;          //TRIGGER LOW
+        TMR1 = 0x0000;                          // reset TMR1
+        PORTB = 0x0010;                         // TRIGGER HIGH (RB4)(use port to write and TRIS TO set INPUT/OUTPUT)
+        ShortDelay(10 * US_TO_CT_TICKS);        // Delay 10 uS  
+        PORTB = 0x0000;                         // TRIGGER LOW (RB4)
+                               
+        while(PORTB == 0x0001)                 // ECHO received 
+            T1CON = 0x8020;                     // Timer Stops
 
-        printf("hello  ");
-
-        while(PORTB != 0b00000001);              //Waiting for Echo
-        {
-             T1CON = 0x8000;
-             mPORTASetBits(0xff);                   // this just turns on all the LEDs
-        }                           //Timer Starts
-        while(PORTB == 0b00000001);              //Waiting for Echo goes LOW
-        {
-            mPORTASetBits(0x00);
-            T1CON = 0x0000;                        //Timer Stops
-        }
-        a = TMR1;                 //Reads Timer Value
+        T1CON = 0x0000;
         
-        a = a/58.82;              //Converts Time to Distance
-        a = a + 1;                //Distance Calibration    
-        if(a>=1 && a<=20)        //Check whether the result is valid or not
-        {
-             printf("THIS IS DISTANCE:  ", a);
-        }
+        a = TMR1;                               // Reads Timer Value
 
+        if(a>=1 && a<=625)                       // Check whether the result is valid or not
+        {
+            mPORTASetBits(0xff);                // lights up when object detected ~1foot away
+        }
+        else
+            mPORTAClearBits(0xff);
+            
     }
     
 }
