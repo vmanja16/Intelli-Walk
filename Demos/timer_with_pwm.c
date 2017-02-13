@@ -50,18 +50,20 @@ int main(void)
     
     /* PWM     */
     OC1CON = 0x0000; // PWM off
-    T2CON  = 0x0020; // Timer 2 w/ prescaler of 64
+    T2CON  = 0x0000; // Timer 2 w/ prescaler of 64
+    OC1R   = 0x0064; // Original duty cycle 
+    OC1RS  = 0x0064; // OC1RS is used to load new duty cycles!
     OC1CON = 0x0006; // PWM Mode
-    OC1R   = 0x3000; // Original duty cycle 
-    PR2    = 0x5000; // Timer's period
-    T2CON |= 0x8000; // start Timer2
-    OC1CON|= 0x8000; // start PWM
+    
+    PR2    = 0x00c7; // Timer's period
+    T2CONSET = 0x8020; // start Timer2
+    OC1CONSET = 0x8000; // start PWM
     
     
     /*    MAIN WHILE LOOP*/
     while(1)
     {
-    OC1RS  = 0x3005; // OC1RS is used to load new duty cycles!
+  
     // OC1R is Read-Only now, on Period Rollover : OC1R <= OC1RS
         
         TMR1 = 0x0000;                          // reset TMR1
