@@ -57,12 +57,13 @@ int main(void)
     T2CON |= 0x8000; // start Timer2
     OC1CON|= 0x8000; // start PWM
     
-    OC1RS  = 0x3005; // OC1RS is used to load new duty cycles!
-    // OC1R is Read-Only now, on Period Rollover : OC1R <= OC1RS
     
     /*    MAIN WHILE LOOP*/
     while(1)
     {
+    OC1RS  = 0x3005; // OC1RS is used to load new duty cycles!
+    // OC1R is Read-Only now, on Period Rollover : OC1R <= OC1RS
+        
         TMR1 = 0x0000;                          // reset TMR1
         PORTB = 0x0010;                         // TRIGGER HIGH (RB4)(use port to write and TRIS TO set INPUT/OUTPUT)
         ShortDelay(10 * US_TO_CT_TICKS);        // Delay 10 uS  
