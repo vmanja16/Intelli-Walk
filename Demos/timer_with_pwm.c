@@ -46,7 +46,7 @@ int main(void)
     AD1PCFG = 0b0010001;                        // RB0, RB4 set to digital pins
     TRISB = 0x01;                               // RB0 as Input PIN (ECHO)
                                                 // RB4 is Output PIN (TRIGGER)  
-    TRISD = 0x00;                               // LCD Pins as Output
+    TRISD = 0x80;                               // LCD Pins as Output
     
     /* PWM     */
     OC1CON = 0x0000; // PWM off
@@ -55,23 +55,28 @@ int main(void)
     OC1RS  = 0x0064; // OC1RS is used to load new duty cycles!
     OC1CON = 0x0006; // PWM Mode
     
-    PR2    = 0x00c7; // Timer's period
+    PR2    = 0x00AF; // Timer's period
     T2CONSET = 0x8020; // start Timer2
     OC1CONSET = 0x8000; // start PWM
     
-    
+    int i = 0;
+    int  oc_values[10] = {0x0F, 0x1F, 0x2F, 0x3F, 0x4F, 0x5F, 0x6F, 0x7F, 0x8F, 0x9F};
     /*    MAIN WHILE LOOP*/
     while(1)
     {
-  
-    // OC1R is Read-Only now, on Period Rollover : OC1R <= OC1RS
+        i = (i + 1) % 10;
+        ShortDelay(500000 * US_TO_CT_TICKS) ;
+        OC1RS = oc_values[i];
         
+        
+    // OC1R is Read-Only now, on Period Rollover : OC1R <= OC1RS
+               /*
         TMR1 = 0x0000;                          // reset TMR1
-        PORTB = 0x0010;                         // TRIGGER HIGH (RB4)(use port to write and TRIS TO set INPUT/OUTPUT)
+        PORTBbits.RB4 = 1;                         // TRIGGER HIGH (RB4)(use port to write and TRIS TO set INPUT/OUTPUT)
         ShortDelay(10 * US_TO_CT_TICKS);        // Delay 10 uS  
-        PORTB = 0x0000;                         // TRIGGER LOW (RB4)
+        PORTBbits.RB4 = 0;                         // TRIGGER LOW (RB4)
                                
-        while(PORTB == 0x0001)                 // ECHO received 
+        while(PORTBbits.RB0)                 // ECHO received 
             T1CON = 0x8020;                     // Timer Stops
 
         T1CON = 0x0000; // turn off timer
@@ -84,6 +89,7 @@ int main(void)
         }
         else
             mPORTAClearBits(0xff);
+    */
     }
     
 }
