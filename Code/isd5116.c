@@ -13,7 +13,6 @@ UINT8 isd_input_gain = 0; /* Input gain. Only relevant if input is ANA IN. */
 
 isd_mode current_isd_mode = stopped; /* global variable for state of ISD chip */
 
-/* This function initializes the device. */
 void
 isd_init(void) {
   /* Make sure bit 3 and 4 of TRISC are set to 0 */
@@ -23,7 +22,6 @@ isd_init(void) {
   //output_float(PIN_C4);
 } /* isd_init */
 
-/* Issue an I2C read status command. Return the status reported by the ISD. */
 UINT8
 isd_read_status(void) {
   UINT8 status, hi_addr, lo_addr;
@@ -38,7 +36,6 @@ isd_read_status(void) {
   return status;
 } /* isd_read_status */
 
-/* Issue an I2C read status command. Return the address reported by the ISD. */
 UINT16
 isd_read_address(void) {
   UINT8 status, hi_addr, lo_addr;
@@ -60,7 +57,6 @@ isd_read_address(void) {
   return addr;
 } /* isd_read_address */
 
-/* Issue an I2C load command. */
 void
 isd_load_command(UINT8 cmd, isd_i2c_stop_mode stop_mode) {
   StartI2C1();
@@ -70,7 +66,6 @@ isd_load_command(UINT8 cmd, isd_i2c_stop_mode stop_mode) {
     StopI2C1();
 } /* isd_load_command */
 
-/* Issue an I2C load command with address. */
 void
 isd_load_command_address(UINT8 cmd, UINT16 addr, isd_i2c_stop_mode stop_mode) {
   StartI2C1();
@@ -82,13 +77,11 @@ isd_load_command_address(UINT8 cmd, UINT16 addr, isd_i2c_stop_mode stop_mode) {
     StopI2C1();
 } /* isd_load_command_address */
 
-/* Power up the ISD. */
 void
 isd_power_up(void) {
   isd_load_command(COMMAND_POWER_UP, ISD_I2C_STOP);
 } /* isd_power_up */
 
-/* Power down the ISD. */
 void
 isd_power_down(void) {
   isd_load_command(COMMAND_POWER_DOWN, ISD_I2C_STOP);
@@ -179,7 +172,6 @@ isd_record(void) {
   isd_load_command(COMMAND_POWER_UP | FUNCTION_RECORD, ISD_I2C_STOP);
 } /* isd_record */
 
-/* Record a message at the specified address on the ISD chip. */
 void
 isd_record_address(UINT16 addr) {
   current_isd_mode = recording;
@@ -201,7 +193,6 @@ isd_play(void) {
   isd_load_command(COMMAND_POWER_UP | FUNCTION_PLAY, ISD_I2C_STOP);
 } /* isd_play */
 
-/* Play a message at specified address on the ISD chip. */
 void
 isd_play_address(UINT16 addr) {
   current_isd_mode = playing;

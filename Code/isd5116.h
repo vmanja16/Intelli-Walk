@@ -9,7 +9,6 @@
 #include <GenericTypeDefs.h>
 #include <stdlib.h>
 
-
 /* define Macros*/
 /*============================================================================*/
 /* Pin assignment definitions */
