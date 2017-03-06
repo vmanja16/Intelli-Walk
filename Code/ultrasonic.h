@@ -9,7 +9,7 @@
 #define ULTRA_THRESHOLD_2 400
 
 // Timer 1 configuration function
-void timer1_init(void);
+void ultrasonic_init(void);
 
 // Timer1 ISR globals
 extern unsigned int Timer1_count; // Number of Timer 1 Interrupts 

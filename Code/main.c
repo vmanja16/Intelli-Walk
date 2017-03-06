@@ -14,19 +14,24 @@ void gpio_init(){
     mPORTASetPinsDigitalOut(0xff);              // set LEDS as digital outputs
 	mPORTAClearBits(0xff);                      // clear LEDS
     	
-    AD1PCFG = 0b0010011;                        // RB 0,1,4, 7 set to digital pins
+    AD1PCFG = 0xFFFF;                           // ALL digital
     TRISB = 0x03;                               // RB 0,1 as Input PIN (ECHO 1,2)                                // RB4 is Output PIN (TRIGGER)  
     TRISD = 0x80;                               // LCD Pins as Output
+    TRISDbits.TRISD11 = 1; // example pushbutton input
+    TRISGbits.TRISG2 = 0b1; // SCL
+    TRISGbits.TRISG3 = 0b1; // SDA
 }
 void Initializations(){
     /*=========     GPIO      ===========*/
     gpio_init();
     /*=========     TIMER1    ===========*/
-    timer1_init();
+    ultrasonic_init();
+    /*=========     TIMER4    ===========*/
+    //timer4_init();
     /*=========     PWM       ===========*/
     pwm1_init(); // Output is RD0
     /*=========     I2C       ===========*/
-    I2CEnable(I2C1, TRUE);
+    isd_init();
     /*=========== Interrupts    ========*/
     INTEnableSystemMultiVectoredInt();
 }
@@ -37,6 +42,7 @@ void ShortDelay(UINT32 DelayCount){                   // Delay Time (CoreTimer T
 
 int main(void)
 {       
+    
     Initializations();
     int i = 0;
     int  oc_values[10] = {0x0F, 0x1F, 0x2F, 0x3F, 0x4F, 0x5F, 0x6F, 0x7F, 0x8F, 0x9F};    
@@ -48,6 +54,18 @@ int main(void)
         if (!(Obstacle_1||Obstacle_2)){
             i = (i + 1) % 10;
             OC1RS = oc_values[i];
+        }
+        else {
+            if(isd_ready())
+                isd_power_up();
+            ShortDelay(100000 * US_TO_CT_TICKS);
+            if(isd_ready())
+                isd_play_address(0x0000);
+            ShortDelay(1000000 * US_TO_CT_TICKS);
+            isd_stop();
+            status = isd_read_status();
+            isd_power_down();
+            asm("nop");
         }
     }
     

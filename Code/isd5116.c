@@ -13,25 +13,79 @@ UINT8 isd_input_gain = 0; /* Input gain. Only relevant if input is ANA IN. */
 
 isd_mode current_isd_mode = stopped; /* global variable for state of ISD chip */
 
+/* I2C FUNCTIONS*/
+unsigned char i2c_read(){
+    IdleI2C1();
+    return MasterReadI2C1();
+}
+unsigned int i2c_write(unsigned char data){
+    IdleI2C1();
+    return MasterWriteI2C1(data);
+}
+void i2c_stop(){
+    IdleI2C1();
+    StopI2C1();
+}
+void i2c_start(){
+    IdleI2C1();
+    StartI2C1();
+}
+
+/* ISD FUNCTIONS*/
 void
 isd_init(void) {
-  /* Make sure bit 3 and 4 of TRISC are set to 0 */
-  /* Make sure to set RAC and INT pins (in appropriate TRIS register) are set as inputs (value 1) */
   /* Set up the I2C pins */
-  //output_float(PIN_C3);
-  //output_float(PIN_C4);
+  // need to set baudrate for scl
+   OpenI2C1(I2C_ON,I2C_BRG);  
+   IdleI2C1();
+   /*
+   UINT32 StartTime;
+   
+   StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+   while ((UINT32)(ReadCoreTimer() - StartTime) < 5000000 ) {} ;
+   //isd_record_address(0);
+   StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+   while ((UINT32)(ReadCoreTimer() - StartTime) < (10000 * US_TO_CT_TICKS) ) {} ;
+     
+   while(1){
+       StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+       while ((UINT32)(ReadCoreTimer() - StartTime) < (10000 * US_TO_CT_TICKS) ) {} ;
+       
+       isd_power_up();
+       StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+       while ((UINT32)(ReadCoreTimer() - StartTime) < (10000 * US_TO_CT_TICKS) ) {} ;
+       isd_play_address(0x000);
+       status = isd_read_status();
+       status = status;
+        StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+        while ((UINT32)(ReadCoreTimer() - StartTime) < (1000000 * US_TO_CT_TICKS) ) {} ;
+       isd_stop();
+       StartTime= ReadCoreTimer();         // Get CoreTimer value for StartTime 
+        while ((UINT32)(ReadCoreTimer() - StartTime) < (100000000 * US_TO_CT_TICKS) ) {} ;
+       isd_power_down();
+       status = isd_read_status();
+       status = status;
+       
+     
+   }*/
 } /* isd_init */
+
+UINT8 isd_ready(void){
+    return (isd_read_status() &0x20) >> 5;
+}
+
 
 UINT8
 isd_read_status(void) {
   UINT8 status, hi_addr, lo_addr;
 
-  StartI2C1();
-  MasterWriteI2C1(current_isd_device_address | 1); // Lowest bit = 1 => READ
-  status = MasterReadI2C1();
-  hi_addr = MasterReadI2C1();
-  lo_addr = MasterReadI2C1();
-  StopI2C1();
+  i2c_start();
+  i2c_write(current_isd_device_address | 1); // Lowest bit = 1 => READ
+  
+  status = i2c_read();
+  hi_addr = i2c_read();
+  lo_addr = i2c_read();
+  i2c_stop();
 
   return status;
 } /* isd_read_status */
@@ -41,12 +95,14 @@ isd_read_address(void) {
   UINT8 status, hi_addr, lo_addr;
   UINT16 addr;
 
-  StartI2C1();
-  MasterWriteI2C1(current_isd_device_address | 1); // Lowest bit = 1 => READ
-  status = MasterReadI2C1();
-  hi_addr = MasterReadI2C1();
-  lo_addr = MasterReadI2C1();
-  StopI2C1();
+  
+  i2c_start();
+  i2c_write(current_isd_device_address | 1); // Lowest bit = 1 => READ
+  
+  status = i2c_read();
+  hi_addr = i2c_read();
+  lo_addr = i2c_read();
+  i2c_stop();
 
   addr = hi_addr;
 
@@ -59,22 +115,32 @@ isd_read_address(void) {
 
 void
 isd_load_command(UINT8 cmd, isd_i2c_stop_mode stop_mode) {
-  StartI2C1();
-  MasterWriteI2C1(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
-  MasterWriteI2C1(cmd);
+  
+  i2c_start();
+  
+  i2c_write(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
+  
+  i2c_write(cmd);
+  
   if (stop_mode == ISD_I2C_STOP)
-    StopI2C1();
+    i2c_stop();
 } /* isd_load_command */
 
 void
 isd_load_command_address(UINT8 cmd, UINT16 addr, isd_i2c_stop_mode stop_mode) {
-  StartI2C1();
-  MasterWriteI2C1(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
-  MasterWriteI2C1(cmd);
-  MasterWriteI2C1(addr >> 8);
-  MasterWriteI2C1(addr & 0xff);
+  
+  i2c_start();
+  
+  i2c_write(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
+  
+  i2c_write(cmd);
+  
+  i2c_write(addr >> 8);
+  
+  i2c_write(addr & 0xff);
+  
   if (stop_mode == ISD_I2C_STOP)
-    StopI2C1();
+    i2c_stop();
 } /* isd_load_command_address */
 
 void
@@ -210,209 +276,6 @@ isd_stop(void) {
   isd_load_command(COMMAND_POWER_UP | FUNCTION_STOP, ISD_I2C_STOP);
   current_isd_mode = stopped;
 } /* isd_stop */
-
-/* Perform message cue on the ISD chip. */
-void
-isd_message_cue(void) {
-  isd_load_command(COMMAND_POWER_UP | FUNCTION_MC, ISD_I2C_STOP);
-} /* isd_message_cue */
-
-/* Perform message cue from specified address on the ISD chip. */
-void
-isd_message_cue_address(UINT16 addr) {
-  isd_load_command_address(COMMAND_POWER_UP | FUNCTION_MC | REGISTER_LOAD_ADDRESS, addr,
-                           ISD_I2C_STOP);
-} /* isd_message_cue_address */
-
-/* Enter digital mode. */
-void
-isd_enter_digital_mode(void) {
-  isd_load_command(COMMAND_POWER_UP | DAB | FUNCTION_STOP, ISD_I2C_STOP);
-} /* isd_enter_digital_mode */
-
-/* Exit digital mode. */
-void
-isd_exit_digital_mode(void) {
-  isd_load_command(COMMAND_POWER_DOWN | DAB | FUNCTION_STOP, ISD_I2C_STOP);
-} /* isd_exit_digital_mode */
-
-/*
-
-/* Wait for RAC to go low, then go high. */
-//void
-//isd_wait_for_rac_pulse(void) {
-//  /* Wait for RAC to go low */
-//  for ( ; ; ) {
-//    if (!input(RAC))
-//      break;
-//    delay_us(10);
-//  }
-//
-//  /* Wait for RAC to go high */
-//  for ( ; ; ) {
-//    if (input(RAC))
-//      break;
-//    delay_us(10);
-//  }
-//} /* isd_wait_for_rac_pulse */
-
-/* Load digital erase command at current address on ISD chip. */
-/*
-
-void
-isd_digital_erase(void) {
-  isd_enter_digital_mode();
-
-  isd_load_command(COMMAND_POWER_UP | FUNCTION_ERASE, ISD_I2C_STOP);
-
-  isd_stop();
-
-  isd_wait_for_rac_pulse();
-
-  isd_exit_digital_mode();
-} */ /* isd_digital_erase */
-
-/* Load digital erase command at specified address on ISD chip. Note that lower five
-   address bits are ignored since address should be a row number. */
-
-/*
-void
-isd_digital_erase_address(UINT16 addr) {
-  isd_enter_digital_mode();
-
-  isd_load_command_address(COMMAND_POWER_UP | FUNCTION_ERASE | REGISTER_LOAD_ADDRESS, addr,
-                           ISD_I2C_STOP);
-
-  isd_stop();
-
-  isd_wait_for_rac_pulse();
-
-  isd_exit_digital_mode();
-} */ /* isd_digital_erase_address */
-
-//#byte SSPCON = 0x14
-#define SSPEN 0x20
-
-/* Perform a digital read at current address on ISD chip. */
-
-void
-isd_digital_read(UINT8 *buf, UINT16 len) {
-  UINT16 i;
-
-  if (len > 256)
-    return;
-
-  isd_enter_digital_mode();
-
-  isd_load_command(COMMAND_POWER_UP | FUNCTION_READ, ISD_NO_I2C_STOP);
-
-  /* Toggle SSPEN bit */
-//  SSPCON &= ~SSPEN;
-//  delay_ms(1);
-//  SSPCON |= SSPEN;
-
-  StartI2C1();
-
-  MasterWriteI2C1(current_isd_device_address | 1); // Lowest bit = 1 => READ
-
-  for (i = 0; i < len; i++)
-    buf[i] = MasterReadI2C1();
-
-  StopI2C1();
-
-  isd_exit_digital_mode();
-}  /* isd_digital_read */
-
-/* Perform a digital read at specified address on ISD chip. */
-void
-isd_digital_read_address(UINT16 addr, UINT8 *buf, UINT16 len) {
-  UINT16 i;
-
-  if (len > 256)
-    return;
-
-  isd_enter_digital_mode();
-
-  isd_load_command_address(COMMAND_POWER_UP | FUNCTION_READ | REGISTER_LOAD_ADDRESS,
-                           addr, ISD_NO_I2C_STOP);
-
-  /* Toggle SSPEN bit */
-  //SSPCON &= ~SSPEN;
-  //SSPCON |= SSPEN;
-
-  StartI2C1();
-
-  MasterWriteI2C1(current_isd_device_address | 1); // Lowest bit = 1 => READ
-
-  for (i = 0; i < len; i++) {
-    buf[i] = MasterReadI2C1();
-  }
-
-  StopI2C1();
-
-  isd_exit_digital_mode();
-} /* isd_digital_read_address *
-
-/* Wait for device to report it is ready */
-void
-isd_wait_for_status_ready(void) {
-  UINT8 status;
-
-  for ( ; ; ) {
-    status = isd_read_status();
-
-    if (status & STATUS_READY)
-      break;
-
-    //delay_us(10);
-  }
-} /* isd_wait_for_status_ready */
-
-/* Perform a digital write at current address on ISD chip. */
-void
-isd_digital_write(UINT8 *buf, UINT16 len) {
-  UINT16 i;
-
-  if (len > 256)
-    return;
-
-  isd_enter_digital_mode();
-
-  isd_load_command(COMMAND_POWER_UP | FUNCTION_WRITE, ISD_NO_I2C_STOP);
-
-  for (i = 0; i < len; i++)
-    MasterWriteI2C1(buf[i]);
-
-  StopI2C1();
-
-  isd_wait_for_status_ready();
-
-  isd_exit_digital_mode();
-} /* isd_digital_write */
-
-/* Perform a digital write at specified address on ISD chip. */
-void
-isd_digital_write_address(UINT16 addr, UINT8 *buf, UINT16 len) {
-  UINT16 i;
-
-  if (len > 256)
-    return;
-
-  isd_enter_digital_mode();
-
-  isd_load_command_address(COMMAND_POWER_UP | FUNCTION_WRITE | REGISTER_LOAD_ADDRESS,
-                           addr, ISD_NO_I2C_STOP);
-
-  for (i = 0; i < len; i++)
-    MasterWriteI2C1(buf[i]);
-
-  StopI2C1();
-
-  isd_wait_for_status_ready();
-
-  isd_exit_digital_mode();
-} /* isd_digital_write_address */
-
 
 
 

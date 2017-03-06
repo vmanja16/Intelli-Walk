@@ -1,7 +1,7 @@
 #include "ultrasonic.h"
 
 /* ULTRASONIC POLLING TIMER INITIALIZATION*/
-void timer1_init(void){
+void ultrasonic_init(void){
     T1CON = 0x0000; // Stop the timer and clear the control register,
     TMR1 = 0x0000; // Clear the timer register
     PR1 = 0x0190; // Load the period register with value 400, since 400 ticks = 10 microsecond
@@ -23,12 +23,12 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
     else{
         if (Echo1_count > 5){
             if (Echo1_count < ULTRA_THRESHOLD_1 ){
-                mPORTASetBits(0x0F);
+                mPORTASetBits(0xFF);
                 Obstacle_1 = 1; // Obstacle detected
                 OC1RS = 0x0000; // shutoff the PWM
             }
             else{
-                mPORTAClearBits(0x0F);
+                mPORTAClearBits(0xFF);
                 Obstacle_1 = 0; // No obstacle
             }
             Echo1_count = 0; // reset Echo count
@@ -38,12 +38,12 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
     else{
         if (Echo2_count > 5){
             if (Echo2_count < ULTRA_THRESHOLD_2 ){
-                mPORTASetBits(0xF0);
+                mPORTASetBits(0x0F);
                 Obstacle_2 = 1; // Obstacle detected
                 OC1RS = 0x0000; // shutoff the PWM
             }
             else{
-                mPORTAClearBits(0xF0);
+                //mPORTAClearBits(0x0F);
                 Obstacle_2 = 0; // No obstacle
             }
             Echo2_count = 0; // reset Echo count

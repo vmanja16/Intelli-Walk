@@ -7,6 +7,7 @@
 // Include required headers
 #include <plib.h>
 #include <GenericTypeDefs.h>
+#include "settings.h"
 #include <stdlib.h>
 
 /* define Macros*/
@@ -158,12 +159,7 @@
 #define TRAC_LO 8
 #define TSTOP   32
 /*============================================================================*/
-/* Type definitions */
-
-typedef enum { playing, recording, stopped } isd_mode;
-
-typedef enum { ISD_NO_I2C_STOP, ISD_I2C_STOP } isd_i2c_stop_mode;
-
+extern UINT8 status;
 /* This function initializes the device. */
 void isd_init(void);
 /* Issue an I2C read status command. Return the status reported by the ISD. */
