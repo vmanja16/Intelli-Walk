@@ -59,11 +59,29 @@ int main(void)
             if(isd_ready())
                 isd_power_up();
             ShortDelay(100000 * US_TO_CT_TICKS);
+           
+           /* 
+             
             if(isd_ready())
-                isd_play_address(0x0000);
+                isd_record_address(0x28 << 5);
             ShortDelay(1000000 * US_TO_CT_TICKS);
             isd_stop();
+            ShortDelay(1000000 * US_TO_CT_TICKS);
+            */
+            if (Obstacle_1){
+                if(isd_ready())
+                    isd_play_address(0x0000);
+                ShortDelay(1000000 * US_TO_CT_TICKS);
+                isd_stop();
+            }
+            else if (Obstacle_2){
+                if(isd_ready())
+                    isd_play_address(0x28 << 5);
+                ShortDelay(1000000 * US_TO_CT_TICKS);
+                isd_stop();
+            }
             status = isd_read_status();
+            address = isd_read_address();
             isd_power_down();
             asm("nop");
         }
