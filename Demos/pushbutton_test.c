@@ -31,5 +31,6 @@ void __ISR(_TIMER_4_VECTOR, ipl3) _Timer4Handler(void){
     AD1PCFG = 0xFFFF;   // ALL digital I/O
     TRIS_PUSH_BUTTON1 = 1; // Pushbutton is input
     timer4_init(); // Initialize timer for sampling
+     INTEnableSystemMultiVectoredInt(); // allow interrupts
     while(1); // LOOP
 }
