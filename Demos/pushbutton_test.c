@@ -1,3 +1,4 @@
+#include <plib.h> // Peripheral library
 #define PUSH_BUTTON_1 PORTDbits.RD10 // choose an input
 #define TRIS_PUSH_BUTTON1 TRISDbits.TRISD10; // and its tris reg val
 #define SAMPLING_PERIOD 0x0F42 // time between checking status of button
