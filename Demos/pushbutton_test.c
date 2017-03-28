@@ -2,6 +2,9 @@
 #define PUSH_BUTTON_1 PORTDbits.RD10 // choose an input
 #define TRIS_PUSH_BUTTON1 TRISDbits.TRISD10; // and its tris reg val
 #define SAMPLING_PERIOD 0x0F42 // time between checking status of button
+// compiler pragmas
+#pragma config FNOSC = PRIPLL, POSCMOD = HS, FPLLIDIV = DIV_2, FPLLMUL = MUL_20, FPBDIV = DIV_2, FPLLODIV = DIV_1
+#pragma config FWDTEN = OFF
 
 void timer4_init(void){
     T4CON = 0x0000; // Stop the timer and clear the control register,
