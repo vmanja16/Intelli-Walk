@@ -1,6 +1,5 @@
 #include <plib.h> // Peripheral library
 #define PUSH_BUTTON_1 PORTDbits.RD10 // choose an input
-#define TRIS_PUSH_BUTTON1 TRISDbits.TRISD10; // and its tris reg val
 #define SAMPLING_PERIOD 0x0F42 // time between checking status of button
 // compiler pragmas
 #pragma config FNOSC = PRIPLL, POSCMOD = HS, FPLLIDIV = DIV_2, FPLLMUL = MUL_20, FPBDIV = DIV_2, FPLLODIV = DIV_1
@@ -17,9 +16,9 @@ void timer4_init(void){
 void __ISR(_TIMER_4_VECTOR, ipl3) _Timer4Handler(void){
 
     // static vars keep their value between interrupts
-    static unsigned char pb_status = 0; // 0  = pushed (or not depending on circuit)
+    static unsigned char pb_status = 1; // 0  = pushed (or not depending on circuit)
 
-    // Toggle LEDs if status changed
+    // Toggle LEDs while pressed
     if(pb_status != PUSH_BUTTON_1){
         mPORTAToggleBits(0xFF);
     }
@@ -33,7 +32,7 @@ void __ISR(_TIMER_4_VECTOR, ipl3) _Timer4Handler(void){
  int main(){
     mPORTAClearBits(0xFF); // Clear LEDs
     AD1PCFG = 0xFFFF;   // ALL digital I/O
-    TRIS_PUSH_BUTTON1 = 1; // Pushbutton is input
+    TRISDbits.TRISD10 = 1; // Pushbutton is input
     timer4_init(); // Initialize timer for sampling
      INTEnableSystemMultiVectoredInt(); // allow interrupts
     while(1); // LOOP
