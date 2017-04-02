@@ -10,15 +10,20 @@ void timer4_init(void){
 
 void __ISR(_TIMER_4_VECTOR, ipl3) _Timer4Handler(void){
 
-    // static vars keep their value between interrupts
+     // static vars keep their value between interrupts
     static unsigned char pb_status = 1; // 0  = pushed (or not depending on circuit)
 
     // Toggle LEDs if status changed
     if((pb_status != PUSH_BUTTON_1) && PUSH_BUTTON_1){
         mPORTAToggleBits(0xFF);
+        // change operational 'mode' variable
+        if(mode==IDLE){mode=RECORDING_PATH;}
+        else if (mode==RECORDING_VOICE){mode = PLAYBACK_PATH;}
+        else if (mode==PLAYBACK_PATH){mode = IDLE;}
     }
     
     // update button status
     pb_status = PUSH_BUTTON_1;
+    
     mT4ClearIntFlag(); // clear the interrupt flag
  }
