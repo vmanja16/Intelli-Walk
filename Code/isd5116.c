@@ -7,7 +7,7 @@ UINT16 isd_cfg0_current = 0; /* Value of CFG0 register currently loaded on the I
 
 UINT16 isd_cfg1_current = 0; /* Value of CFG0 register currently loaded on the ISD */
 
-UINT8 isd_volume = 0; /* Volume attenuation */
+UINT8 isd_volume = 0x00; /* Volume attenuation */
 
 UINT8 isd_input_gain = 0; /* Input gain. Only relevant if input is ANA IN. */
 
@@ -35,9 +35,12 @@ void i2c_start(){
 void
 isd_init(void) {
   /* Set up the I2C pins */
-  // need to set baudrate for scl
-   OpenI2C1(I2C_ON,I2C_BRG);  
-   IdleI2C1();
+    TRISGbits.TRISG2 = 0b1; // SCL
+    TRISGbits.TRISG3 = 0b1; // SDA
+    // need to set baudrate for scl
+    OpenI2C1(I2C_ON,I2C_BRG);  
+    IdleI2C1();
+   
 } /* isd_init */
 
 UINT8 isd_ready(void){
@@ -51,6 +54,7 @@ isd_read_status(void) {
 
   i2c_start();
   i2c_write(current_isd_device_address | 1); // Lowest bit = 1 => READ
+  
   status = i2c_read();
   hi_addr = i2c_read();
   lo_addr = i2c_read();
@@ -67,10 +71,12 @@ isd_read_address(void) {
   
   i2c_start();
   i2c_write(current_isd_device_address | 1); // Lowest bit = 1 => READ
+  
   status = i2c_read();
   hi_addr = i2c_read();
   lo_addr = i2c_read();
   i2c_stop();
+
   addr = hi_addr;
   addr <<= 8;
   addr |= lo_addr;
@@ -82,7 +88,9 @@ void
 isd_load_command(UINT8 cmd, isd_i2c_stop_mode stop_mode) {
   
   i2c_start();
+  
   i2c_write(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
+  
   i2c_write(cmd);
   
   if (stop_mode == ISD_I2C_STOP)
@@ -93,9 +101,13 @@ void
 isd_load_command_address(UINT8 cmd, UINT16 addr, isd_i2c_stop_mode stop_mode) {
   
   i2c_start();
+  
   i2c_write(current_isd_device_address | 0); // Lowest bit = 0 => WRITE
+  
   i2c_write(cmd);
+  
   i2c_write(addr >> 8);
+  
   i2c_write(addr & 0xff);
   
   if (stop_mode == ISD_I2C_STOP)
@@ -152,7 +164,7 @@ isd_set_config(void) {
     CFG0_AXPD; /* Power down AUX IN */
  
   isd_cfg1 = CFG1_FLD_8KHZ; /* Sampling rate */
-
+  
   if (current_isd_mode == playing) {
     /* Output content of memory array */
     isd_cfg0 |=
@@ -191,7 +203,9 @@ isd_set_config(void) {
 void
 isd_record(void) {
   current_isd_mode = recording;
+
   isd_set_config();
+
   isd_load_command(COMMAND_POWER_UP | FUNCTION_RECORD, ISD_I2C_STOP);
 } /* isd_record */
 
