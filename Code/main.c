@@ -1,6 +1,7 @@
 #include "intelli-walk.h"
 
-UINT32 test_array[10];
+
+UINT32 test_array[10], test_array2[10];
 volatile int index = 0;
 int L = 1;
 volatile UINT32 count = 1;
@@ -54,20 +55,22 @@ void timer5_init(void){
     T5CON = 0x0000; // Stop the timer and clear the control register,
     TMR5 = 0x0000; // Clear the timer register
     PR5 = 0x0F42; // Load the period register with value 4000, since 4000 ticks = 100 microsecond
-    T5CONSET = 0x8020; // Start the timer
-    // set up the core timer interrupt with a Priority of 3 and zero sub-priority
-    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_4);
+    T5CONSET = 0x8000; // Start the timer
+    // set up the core timer interrupt with a Priority of 4 and zero sub-priority
+    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
 }
 /* MOTOR ENCODER SAMPLER AND SUMMER*/
-void __ISR(_TIMER_5_VECTOR, ipl4) _Timer5Handler(void){
+void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
    
     // Grey Counter bit
     static UINT8 toggle = 0;
     
-    //Not in record mode
-    if(mode==IDLE){toggle = 0; count = 1; mT5ClearIntFlag(); return;}
-    if(mode==PLAYBACK_PATH){}
-    if (mode!=RECORDING_PATH){mT5ClearIntFlag(); return;}
+    //Not in a path  mode
+    //if(mode==IDLE){toggle = 0; count = 1; mT5ClearIntFlag(); return;}
+    if (( mode!=RECORDING_PATH) || (mode!=PLAYBACK_PATH)){
+        toggle = 0; count = 1; mT5ClearIntFlag(); return;
+    }
+    
     // Increment encoder_val if bit has been toggled!
     if (PORTDbits.RD11 != toggle){
         encoder_count++;
@@ -85,7 +88,8 @@ void __ISR(_TIMER_5_VECTOR, ipl4) _Timer5Handler(void){
             asm("nop");
             return;
         }
-        test_array[index] = encoder_count;
+        if(mode==RECORDING_PATH)test_array[index] = encoder_count;
+        if(mode==PLAYBACK_PATH)test_array2[index] = encoder_count;
         index++;
         encoder_count=0;
     }    
@@ -94,47 +98,36 @@ void __ISR(_TIMER_5_VECTOR, ipl4) _Timer5Handler(void){
     asm("nop");
  }
 
+
+/* 0x3F on PWM = 2A motor encoders per half second*/
 int main(void)
 {       
     unsigned char ob_1 = 0, ob_2 = 0;
     int i = 0;
-    int  oc_values[10] = {0x0F, 0x1F, 0x2F, 0x3F, 0x4F, 0x5F, 0x6F, 0x7F, 0x8F, 0x9F};    
-    UINT32 * ptr = NULL;
+    int  oc_values[10] = {0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F};    
+    //UINT32 * ptr = NULL;
    
     Initializations();
-    /* TEST NVM writing*/
-   /* 
-    while(1){
-        ptr = 0x1800;
-        l = *ptr;
-    }
-    */
-    
-    /* TESTING PUSHBUTTON LOOP*/
-    //while(1);
     
     /* TESTING PWM + ENCODER LOOP*/
-    for(i=0;i<10;i++){test_array[i]=0x00;} // initialize test_array
+    for(i=0;i<10;i++){test_array[i]=0x00; test_array[i] = 0x00;} // initialize test_array
     i=0;
     while(1){
         if (mode==RECORDING_PATH){
             PORTA = 0xF0;
             //delay_seconds();
             i = (++i) % 10;
-            OC1RS = oc_values[i];
-            delay_seconds(1);
-            //OC1RS = 0x00;
+            OC1RS = 0x3F;
         }
         else if (mode==PLAYBACK_PATH){
             PORTA = 0x0F;
-            for(i =0; i < 10; i++){
-                
-            }
+            // get PWM from encoder array
+            OC1RS = test_array[index] * ENCODER_MULTIPLIER;
+            
         }
-        // kill motor if not testing
-        else{OC1RS=0;}
+        // kill motor if not testing   
+        else{i = 0; OC1RS=0;}
     }
-        
     
     /*    MAIN WHILE LOOP*/
     /*
