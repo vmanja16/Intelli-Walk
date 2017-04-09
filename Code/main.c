@@ -32,15 +32,15 @@ void Initializations(){
     /*=========     GPIO      ===========*/
     gpio_init();
     /*=========     TIMER1    ===========*/
-    //ultrasonic_init();
-    /*=========     TIMER4    ===========*/
+    ultrasonic_init();
+    /*=========     TIMER4   (PUSHBUTTON) ===========*/
     timer4_init();
-    /*=========     TIMER5    ===========*/
-    timer5_init();
+    /*=========     TIMER5  (ENCODERS)  ===========*/
+    //timer5_init();
     /*=========     PWM (TIMERS 2 and 3)      ===========*/
-    pwm1_init(); // Output is RD0
+    //pwm1_init(); // Output is RD0
     /*=========     I2C       ===========*/
-    //isd_init();
+    isd_init();
     /*=========== Interrupts    ========*/
     INTEnableSystemMultiVectoredInt();
 }
@@ -67,7 +67,7 @@ void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
     
     //Not in a path  mode
     //if(mode==IDLE){toggle = 0; count = 1; mT5ClearIntFlag(); return;}
-    if (( mode!=RECORDING_PATH) || (mode!=PLAYBACK_PATH)){
+    if (!( (mode==RECORDING_PATH) || (mode==PLAYBACK_PATH) ) ){
         toggle = 0; count = 1; mT5ClearIntFlag(); return;
     }
     
@@ -84,7 +84,12 @@ void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
         //we only have 10 spaces in array atm
         if(index>=10){
             index = 0;
+            count = 1;
+            if(mode == PLAYBACK_PATH){
+                asm("nop");
+            }
             mode = RECORDING_VOICE;
+            
             asm("nop");
             return;
         }
@@ -110,14 +115,15 @@ int main(void)
     Initializations();
     
     /* TESTING PWM + ENCODER LOOP*/
-    for(i=0;i<10;i++){test_array[i]=0x00; test_array[i] = 0x00;} // initialize test_array
+   /*
+    for(i=0;i<10;i++){test_array[i]=0x00; test_array2[i] = 0x00;} // initialize test_array
     i=0;
     while(1){
         if (mode==RECORDING_PATH){
             PORTA = 0xF0;
             //delay_seconds();
             i = (++i) % 10;
-            OC1RS = 0x3F;
+            OC1RS = 0x7F;
         }
         else if (mode==PLAYBACK_PATH){
             PORTA = 0x0F;
@@ -129,11 +135,12 @@ int main(void)
         else{i = 0; OC1RS=0;}
     }
     
-    /*    MAIN WHILE LOOP*/
-    /*
+    */
+    
+    /*    TESTING ISD5116 LOOP*/
+  //  /*
     while(1)
     {
-        
         
         //if(PORTDbits.RD11){mPORTASetBits(0xFF);}
         //else{mPORTAClearBits(0xFF);}
@@ -175,6 +182,6 @@ int main(void)
         }
     
     }
-    */
+    //*/
     asm("nop");
 }
