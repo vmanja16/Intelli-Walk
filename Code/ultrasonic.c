@@ -15,35 +15,30 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
     
     Timer1_count = (Timer1_count+1)  % MS_50; // Update timer count mod 50 ms
     // 10 microsecond pulse to sensors!
-    if (Timer1_count <= 1){ PORTBbits.RB4 =  1; PORTDbits.RD3 = 1;}
-    else{PORTBbits.RB4 = 0; PORTDbits.RD3 = 0;} 
+    if (Timer1_count <= 1){ PORTBbits.RB6 =  1; PORTBbits.RB8 = 1;}
+    else{PORTBbits.RB6 = 0; PORTBbits.RB8 = 0;} 
     
     // Updating Echo reading
-    if (PORTBbits.RB0){Echo1_count ++;}
+    if (PORTBbits.RB7){Echo1_count ++;}
     else{
         if (Echo1_count > 5){
             if (Echo1_count < ULTRA_THRESHOLD_1 ){
-                mPORTASetBits(0xFF);
                 Obstacle_1 = 1; // Obstacle detected
-                OC1RS = 0x0000; // shutoff the PWM
             }
             else{
-                mPORTAClearBits(0xFF);
                 Obstacle_1 = 0; // No obstacle
             }
             Echo1_count = 0; // reset Echo count
         }
     }
-    if (PORTBbits.RB1){Echo2_count ++;}
+    if (PORTBbits.RB9){Echo2_count ++;}
     else{
         if (Echo2_count > 5){
             if (Echo2_count < ULTRA_THRESHOLD_2 ){
-                mPORTASetBits(0x0F);
                 Obstacle_2 = 1; // Obstacle detected
-                OC1RS = 0x0000; // shutoff the PWM
             }
             else{
-                //mPORTAClearBits(0x0F);
+                
                 Obstacle_2 = 0; // No obstacle
             }
             Echo2_count = 0; // reset Echo count

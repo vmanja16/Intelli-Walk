@@ -1,6 +1,6 @@
 #include "pushbutton.h"
 
-void timer4_init(void){
+void pushbutton_init(void){
     T4CON = 0x0000; // Stop the timer and clear the control register,
     TMR4 = 0x0000; // Clear the timer register
     PR4 = SAMPLING_PERIOD; // Load the period register with value 4000, since 4000 ticks = 100 microsecond
@@ -15,9 +15,10 @@ void __ISR(_TIMER_4_VECTOR, ipl3) _Timer4Handler(void){
 
     // Toggle LEDs if status changed
     if((pb_status != PUSH_BUTTON_1) && PUSH_BUTTON_1){
-        mPORTAToggleBits(0xFF);
+        
         // change operational 'mode' variable
         if(mode==IDLE){mode=RECORDING_PATH;}
+        else if (mode==RECORDING_PATH){mode = RECORDING_VOICE;}
         else if (mode==RECORDING_VOICE){mode = PLAYBACK_PATH;}
         else if (mode==PLAYBACK_PATH){mode = IDLE;}
     }
