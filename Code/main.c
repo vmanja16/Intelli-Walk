@@ -3,6 +3,8 @@
 /*
 //========================= FOR TESTING main solo! =============================
 #include <plib.h>
+#pragma config FNOSC = PRIPLL, POSCMOD = HS, FPLLIDIV = DIV_2, FPLLMUL = MUL_20, FPBDIV = DIV_2, FPLLODIV = DIV_1
+#pragma config FWDTEN = OFF
 #define	SYS_FREQ	              80000000		   // frequency we're running at
 #define CPU_CLOCK_HZ             (80000000UL)      // CPU Clock Speed in Hz 
 #define CPU_CT_HZ            (CPU_CLOCK_HZ/2)      // CPU CoreTimer   in Hz 
@@ -16,61 +18,7 @@ UINT32 test_array[10], test_array2[10];
 volatile int idx = 0;
 volatile UINT32 count = 1;
 
-void pwm1_init(){
-    OC1CON = 0x0000; // PWM off
-    T2CON  = 0x0000; // Timer 2 w/ prescaler of 64
-    OC1R   = 0x0064; // Original duty cycle 
-    OC1RS  = 0x0064; // OC1RS is used to load new duty cycles!
-    OC1CON = 0x0006; // PWM Mode
-    PR2    = 0x00AF; // Timer's period
-    T2CONSET  = 0x8020; // start Timer2
-    OC1CONSET = 0x8000; // start PWM
- }
-void gpio_init(){	
-    AD1PCFG = 0xFFFF;                           // ALL digital
-    TRISB = 0x00;                               // RB 0,1 as Input PIN (ECHO 1,2)                                // RB4 is Output PIN (TRIGGER)  
-    TRISD = 0x80;
-  
-    
-    
-    
-    
-    // Ultrasonic ECHO inputs
-    TRISBbits.TRISB7 = 0b1;
-    TRISBbits.TRISB9 = 0b1;
-    
-    // Pushbuttons
-    TRISBbits.TRISB10 = 0b1; // Pushbutton is input
-    TRISBbits.TRISB11 = 0b1; // Pushbutton is input
-    TRISBbits.TRISB12 = 0b1; // pushbutton is input
-    
-    
-    TRISDbits.TRISD11 = 0b1; // example encoder input
-    
-}
-void Initializations(){
-    /*=========     GPIO      ===========*/
-    gpio_init();
-    /*=========     TIMER1    ===========*/
-    //ultrasonic_init();
-    /*=========     TIMER4   (PUSHBUTTON) ===========*/
-    //pushbutton_init();
-    /*=========     TIMER5  (ENCODERS)  ===========*/
-    //timer5_init();
-    /*=========     PWM (TIMERS 2 and 3)      ===========*/
-    pwm1_init(); // Output is RD0
-    /*=========     I2C       ===========*/
-    //isd_init();
-    /*=========== Interrupts    ========*/
-    INTEnableSystemMultiVectoredInt();
-}
-void ShortDelay(UINT32 DelayCount){                   // Delay Time (CoreTimer Ticks)  
-  UINT32 StartTime = ReadCoreTimer();         // Get CoreTimer value for StartTime 
-  while ((UINT32)(ReadCoreTimer() - StartTime) < DelayCount ) {} ;
-} 
-void delay_seconds(UINT8 secs){
-    ShortDelay(secs*1000000*US_TO_CT_TICKS);
-}
+/*
 void timer5_init(void){
     T5CON = 0x0000; // Stop the timer and clear the control register,
     TMR5 = 0x0000; // Clear the timer register
@@ -79,6 +27,7 @@ void timer5_init(void){
     // set up the core timer interrupt with a Priority of 4 and zero sub-priority
     ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
 }
+*/
 /* MOTOR ENCODER SAMPLER AND SUMMER*/
 /*
 void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
@@ -124,18 +73,105 @@ void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
     asm("nop");
  }
 */
+void pwm1_init(){
+    OC1CON = 0x0000; // PWM off
+    T2CON  = 0x0000; // Timer 2 w/ prescaler of 64
+    OC1R   = 0x0064; // Original duty cycle 
+    OC1RS  = 0x0064; // OC1RS is used to load new duty cycles!
+    OC1CON = 0x0006; // PWM Mode
+    PR2    = 0x00AF; // Timer's period
+    T2CONSET  = 0x8020; // start Timer2
+    OC1CONSET = 0x8000; // start PWM
+ }
+void pwm2_init(){
+    OC2CON = 0x0000; // PWM off
+    T3CON  = 0x0000; // Timer 3 w/ prescaler of 64
+    OC2R   = 0x0064; // Original duty cycle 
+    OC2RS  = 0x0064; // OC2RS is used to load new duty cycles!
+    OC2CON = 0x0006; // PWM Mode
+    PR3    = 0x00AF; // Timer3's period
+    T3CONSET  = 0x8020; // start Timer3
+    OC2CONSET = 0x8000; // start PWM
+ }
+void gpio_init(){	
 
+    AD1PCFG = 0xFFFF;   // ALL digital
 
+    TRISB = 0x00;                               
+    TRISD = 0x80;
+  
+    // Encoder inputs
+    TRISAbits.TRISA0 = 0b1;
+    TRISAbits.TRISA1 = 0b1;
+    
+    // ISD5116 A0-A1 outputs (grounded)
+    TRISBbits.TRISB2 = 0b0; PORTBbits.RB2=0;
+    TRISBbits.TRISB3 = 0b0; PORTBbits.RB3=0;
 
+    // Motor direction outputs
+    TRISBbits.TRISB4 = 0b0;
+    TRISBbits.TRISB5 = 0b0;
+
+    // Ultrasonic TRIGGER outputs
+    TRISBbits.TRISB6 = 0b0;
+    TRISBbits.TRISB8 = 0b0;
+    
+    // Ultrasonic ECHO inputs
+    TRISBbits.TRISB7 = 0b1;
+    TRISBbits.TRISB9 = 0b1;
+    
+    // Pushbuttons inputs
+    TRISBbits.TRISB10 = 0b1; 
+    TRISBbits.TRISB11 = 0b1; 
+    TRISBbits.TRISB12 = 0b1; 
+    
+    // ISD5116 SDA/SCL inputs
+    TRISGbits.TRISG2 = 0b1;
+    TRISGbits.TRISG3 = 0b1;
+}
+void Initializations(){
+    /*=========     GPIO      ===========*/
+    gpio_init();
+    /*=========     TIMER1    ===========*/
+    //ultrasonic_init();
+    /*=========     TIMER4   (PUSHBUTTON) ===========*/
+    //pushbutton_init();
+    /*=========     TIMER5  (ENCODERS)  ===========*/
+    //timer5_init();
+    /*=========     PWM (TIMERS 2 and 3)      ===========*/
+    pwm1_init(); // Output is RD0
+    //pwm2_init(); // Output is RD1
+    /*=========     I2C       ===========*/
+    //isd_init();
+    /*=========== Interrupts    ========*/
+    INTEnableSystemMultiVectoredInt();
+}
+void ShortDelay(UINT32 DelayCount){                   // Delay Time (CoreTimer Ticks)  
+  UINT32 StartTime = ReadCoreTimer();         // Get CoreTimer value for StartTime 
+  while ((UINT32)(ReadCoreTimer() - StartTime) < DelayCount ) {} ;
+} 
+void delay_seconds(UINT8 secs){
+    ShortDelay(secs*1000000*US_TO_CT_TICKS);
+}
+
+//===================== MOTOR functions for Testing==================
 void motor1_off(){
-    PORTBbits.RB4 = 0;
+    PORTBbits.RB4 = 0b0;
     OC1RS = 0x00;
 }
-void motor1_on(UINT16 speed){
-    PORTBbits.RB4 = 1;
+void motor1_on(unsigned char speed){
+    PORTBbits.RB4 = 0b1;
     OC1RS = speed;
 }
-
+void motor2_off(){
+    PORTBbits.RB5 = 0b0;
+    OC2RS = 0x00;
+}
+void motor2_on(unsigned char speed){
+    PORTBbits.RB5 = 0b1;
+    OC2RS = speed;
+}
+//====================================================================
 
 /* 0x5F on PWM = 2A motor encoders per half second*/
 int main(void)
@@ -151,8 +187,8 @@ int main(void)
     while(1){
         motor1_off();
         delay_seconds(3);
-        motor1_on(0xFF);
-        delay_seconds(1);
+        motor1_on(0x5F);
+        delay_seconds(3);
     }
     /* TSTING PUSHBUTTON LOOP*/
     /*
@@ -246,5 +282,4 @@ int main(void)
     
     } */
     
-    asm("nop");
 } // end main
