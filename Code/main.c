@@ -13,12 +13,14 @@
 #define I2C_BRG 0x0c2 // I2C BRG value for 100 kHz
 //============================================================================
 */
-
-UINT32 test_array[10], test_array2[10];
+// EXTRA GLOBALS!
+UINT32 test_array[10],test_array_2[10], playback_array[10],playback_array2[10];
 volatile int idx = 0;
 volatile UINT32 count = 1;
+char X = 1;
+//UINT8 Path_1[500]; // possible PATH array! attemting to use const for nvm!
 
-/*
+
 void timer5_init(void){
     T5CON = 0x0000; // Stop the timer and clear the control register,
     TMR5 = 0x0000; // Clear the timer register
@@ -27,26 +29,29 @@ void timer5_init(void){
     // set up the core timer interrupt with a Priority of 4 and zero sub-priority
     ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
 }
-*/
+
 /* MOTOR ENCODER SAMPLER AND SUMMER*/
-/*
+
 void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
    
     // Grey Counter bit
     static UINT8 toggle = 0;
     
+    unsigned char ob_2 = Obstacle_2;
     //Not in a path  mode
     //if(mode==IDLE){toggle = 0; count = 1; mT5ClearIntFlag(); return;}
     if (!( (mode==RECORDING_PATH) || (mode==PLAYBACK_PATH) ) ){
         toggle = 0; count = 1; mT5ClearIntFlag(); return;
     }
-    
+    // Don't deal w/ encoder/timer if obstacle detected, OC taken care of in Main!
+    if(ob_2){mT5ClearIntFlag();return;}
+    //==============================ENCODER LOGIC========================//
     // Increment encoder_val if bit has been toggled!
-    if (PORTDbits.RD11 != toggle){
+    if (PORTAbits.RA0 != toggle){
         encoder_count++;
     }    
     // Update toggle value 
-    toggle = PORTDbits.RD11;
+    toggle = PORTAbits.RA0;
     
     // Record count in memory
     count = (++count) % 5000;
@@ -56,7 +61,8 @@ void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
             idx = 0;
             count = 1;
             if(mode == PLAYBACK_PATH){
-                asm("nop");
+                mode = PLAYBACK_VOICE;
+                return;
             }
             mode = RECORDING_VOICE;
             
@@ -64,20 +70,20 @@ void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
             return;
         }
         if(mode==RECORDING_PATH)test_array[idx] = encoder_count;
-        if(mode==PLAYBACK_PATH)test_array2[idx] = encoder_count;
+        if(mode==PLAYBACK_PATH) playback_array[idx] = encoder_count;
         idx++;
         encoder_count=0;
     }    
-    
+    //=========================================================//
     mT5ClearIntFlag(); // clear the interrupt flag
     asm("nop");
  }
-*/
+
 void pwm1_init(){
     OC1CON = 0x0000; // PWM off
     T2CON  = 0x0000; // Timer 2 w/ prescaler of 64
-    OC1R   = 0x0064; // Original duty cycle 
-    OC1RS  = 0x0064; // OC1RS is used to load new duty cycles!
+    OC1R   = 0x001; // Original duty cycle 
+    OC1RS  = 0x002; // OC1RS is used to load new duty cycles!
     OC1CON = 0x0006; // PWM Mode
     PR2    = 0x00AF; // Timer's period
     T2CONSET  = 0x8020; // start Timer2
@@ -86,8 +92,8 @@ void pwm1_init(){
 void pwm2_init(){
     OC2CON = 0x0000; // PWM off
     T3CON  = 0x0000; // Timer 3 w/ prescaler of 64
-    OC2R   = 0x0064; // Original duty cycle 
-    OC2RS  = 0x0064; // OC2RS is used to load new duty cycles!
+    OC2R   = 0x001; // Original duty cycle 
+    OC2RS  = 0x002; // OC2RS is used to load new duty cycles!
     OC2CON = 0x0006; // PWM Mode
     PR3    = 0x00AF; // Timer3's period
     T3CONSET  = 0x8020; // start Timer3
@@ -101,33 +107,35 @@ void gpio_init(){
     TRISD = 0x80;
   
     // Encoder inputs
-    TRISAbits.TRISA0 = 0b1;
-    TRISAbits.TRISA1 = 0b1;
+    TRISAbits.TRISA0 = 1;
+    TRISAbits.TRISA1 = 1;
+    TRISAbits.TRISA2 = 0;
+    TRISAbits.TRISA3 = 0;
     
     // ISD5116 A0-A1 outputs (grounded)
-    TRISBbits.TRISB2 = 0b0; PORTBbits.RB2=0;
-    TRISBbits.TRISB3 = 0b0; PORTBbits.RB3=0;
+    TRISBbits.TRISB2 = 0; PORTBbits.RB2=0;
+    TRISBbits.TRISB3 = 0; PORTBbits.RB3=0;
 
     // Motor direction outputs
-    TRISBbits.TRISB4 = 0b0;
-    TRISBbits.TRISB5 = 0b0;
+    TRISBbits.TRISB4 = 0;
+    TRISBbits.TRISB5 = 0;
 
     // Ultrasonic TRIGGER outputs
-    TRISBbits.TRISB6 = 0b0;
-    TRISBbits.TRISB8 = 0b0;
+    TRISBbits.TRISB6 = 0;
+    TRISBbits.TRISB8 = 0;
     
     // Ultrasonic ECHO inputs
-    TRISBbits.TRISB7 = 0b1;
-    TRISBbits.TRISB9 = 0b1;
+    TRISBbits.TRISB7 = 1;
+    TRISBbits.TRISB9 = 1;
     
     // Pushbuttons inputs
-    TRISBbits.TRISB10 = 0b1; 
-    TRISBbits.TRISB11 = 0b1; 
-    TRISBbits.TRISB12 = 0b1; 
+    TRISBbits.TRISB10 = 1; 
+    TRISBbits.TRISB11 = 1; 
+    TRISBbits.TRISB12 = 1; 
     
     // ISD5116 SDA/SCL inputs
-    TRISGbits.TRISG2 = 0b1;
-    TRISGbits.TRISG3 = 0b1;
+    TRISGbits.TRISG2 = 1;
+    TRISGbits.TRISG3 = 1;
 }
 void Initializations(){
     /*=========     GPIO      ===========*/
@@ -139,7 +147,7 @@ void Initializations(){
     /*=========     TIMER5  (ENCODERS)  ===========*/
     //timer5_init();
     /*=========     PWM (TIMERS 2 and 3)      ===========*/
-    pwm1_init(); // Output is RD0
+    //pwm1_init(); // Output is RD0
     //pwm2_init(); // Output is RD1
     /*=========     I2C       ===========*/
     //isd_init();
@@ -155,22 +163,26 @@ void delay_seconds(UINT8 secs){
 }
 
 //===================== MOTOR functions for Testing==================
+/*
 void motor1_off(){
-    PORTBbits.RB4 = 0b0;
+    PORTBbits.RB4 = 0;
+    PORTBbits.RB5 = 0;
     OC1RS = 0x00;
 }
 void motor1_on(unsigned char speed){
-    PORTBbits.RB4 = 0b1;
-    OC1RS = speed;
+    PORTBbits.RB4 = 1;
+    PORTBbits.RB5 = 1;
+    OC1RS = 0x80;
 }
 void motor2_off(){
-    PORTBbits.RB5 = 0b0;
+    PORTBbits.RB5 = 0;
     OC2RS = 0x00;
 }
 void motor2_on(unsigned char speed){
-    PORTBbits.RB5 = 0b1;
+    PORTBbits.RB5 = 1;
     OC2RS = speed;
 }
+ */
 //====================================================================
 
 /* 0x5F on PWM = 2A motor encoders per half second*/
@@ -178,59 +190,108 @@ int main(void)
 {       
     unsigned char ob_1 = 0, ob_2 = 0;
     int i = 0;
-    
-   int  oc_values[10] = {0x3F, 0x4F, 0x5F, 0x6F, 0x7F, 0x8F, 0x9F, 0x1F, 0x2F, 0x00};    
+   int  oc_values[10] = {0x3F, 0x2F, 0x1F, 0x1F, 0x2F, 0x3F, 0x2F, 0x1F, 0x0F, 0x0F};    
    
     /* RUN INITIALIZATIONS*/
     Initializations();
+
+    /* TESTING PWM + ENCODER LOOP*/
     
-    while(1){
-        motor1_off();
-        delay_seconds(3);
-        motor1_on(0x5F);
-        delay_seconds(3);
-    }
-    /* TSTING PUSHBUTTON LOOP*/
-    /*
-    PORTBbits.RB8 = 1;
-    PORTBbits.RB9 = 0;
-    while(1){
+    PORTAbits.RA2 = 0;
+    PORTAbits.RA3 = 0;
+    //while(1);
+    for(i=0;i<10;i++){test_array[i]=0x00; test_array_2[i] = 0x00;} // initialize test_array
+    i=0;
+    PORTBbits.RB4 = 0; OC1RS = 0x00; OC2RS = 0x00;
+    
+    delay_seconds(1);
+    // ULTRASONIC TEST LOOP
+    
+    void beep(UINT8 number_of_beeps){
+        
+        LATBbits.LATB4 = 1;
+        ShortDelay(250*US_TO_CT_TICKS);
+        LATBbits.LATB4 = 0;
+        ShortDelay(750*US_TO_CT_TICKS);
+        asm("nop");
         
     }
     
-    */
-    /* TESTING ULTRASONIC LOOP*/
-    /*
-    while(1){
-        ob_1 = Obstacle_1;
-        ob_2 = Obstacle_2;
-        if (ob_1 || ob_2){
-            // do stuff
-        }
-    }
-    */
-    /* TESTING PWM + ENCODER LOOP*/
-   /*
-    for(i=0;i<10;i++){test_array[i]=0x00; test_array2[i] = 0x00;} // initialize test_array
-    i=0;
-    while(1){
-        if (mode==RECORDING_PATH){
-            PORTA = 0xF0;
-            //delay_seconds();
-            i = (++i) % 10;
-            OC1RS = 0x7F;
-        }
-        else if (mode==PLAYBACK_PATH){
-            PORTA = 0x0F;
-            // get PWM from encoder array
-            OC1RS = test_array[idx] * ENCODER_MULTIPLIER;
-            
-        }
-        // kill motor if not testing   
-        else{i = 0; OC1RS=0;}
+    
+    while(1) {
+        
     }
     
+    /*
+    while(1){
+        PORTBbits.RB8 = 1;
+        if(Obstacle_2){PORTAbits.RA3 = 1;}
+        else{PORTAbits.RA3 = 0;};
+        
+    }
     */
+    //========NVM TESTING====================
+    //#define NVM_PROGRAM_PAGE 0x1d007000
+/*
+#define NVM_PROGRAM_PAGE 0xbd008000
+    #define NVM_PAGE_SIZE	4096
+    #define NVM_ROW_SIZE 512
+    unsigned char page_buff[NVM_PAGE_SIZE];
+    unsigned char data_buff[NVM_ROW_SIZE];
+    for(i=0; i<NVM_ROW_SIZE; i++){data_buff[i]=i;}
+    if(NVMErasePage((void *)NVM_PROGRAM_PAGE)){
+        asm("nop");
+    };
+    delay_seconds(1);
+    if(NVMWriteRow((void *)NVM_PROGRAM_PAGE, (void*)data_buff)){
+        asm("nop");
+    };
+    delay_seconds(1);
+    if(memcmp(data_buff, (void *)NVM_PROGRAM_PAGE, sizeof(data_buff))){X = 0x23;}
+    
+    while(1){
+        asm("nop");
+    asm("nop");asm("nop");asm("nop");
+    asm("nop");
+    }
+    *///===========================
+    
+    
+    
+    
+    mode=RECORDING_PATH;
+    while(1){
+        ob_2 = Obstacle_2;
+        if(ob_2){OC1RS =0x00;OC2RS=0x00;PORTAbits.RA3 = 1; continue;}
+        
+        // Obstacle - Free!
+        PORTAbits.RA3 = 0;
+        if (mode==RECORDING_PATH){
+            PORTBbits.RB4 = 0;
+            OC1RS = oc_values[idx];
+            OC2RS = oc_values[idx];
+        }
+        else if (mode==PLAYBACK_PATH){
+            // get PWM from encoder array
+            PORTBbits.RB4 = 0;
+            OC1RS = test_array[idx]  * ENCODER_MULTIPLIER;
+            OC2RS = test_array_2[idx] * ENCODER_MULTIPLIER;
+        }
+        else if (mode == RECORDING_VOICE){
+             PORTBbits.RB4 = 0;
+            OC1RS = 0x00; OC2RS = 0x00;
+            delay_seconds(1);
+            mode = PLAYBACK_PATH;i=0;
+        }
+        // kill motor if not testing   
+        else{i = 0; OC1RS=0; OC2RS = 0x00; PORTBbits.RB4 = 0;}
+    }
+
+// 5F: 2A
+    // 96:42
+    // max: 
+    
+} // end main
     /*    TESTING ISD5116 LOOP*/
     /*    while(1)
     {
@@ -282,4 +343,3 @@ int main(void)
     
     } */
     
-} // end main
