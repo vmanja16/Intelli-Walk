@@ -1,5 +1,4 @@
 #include "intelli-walk.h"
-
 /*
 //========================= FOR TESTING main solo! =============================
 #include <plib.h>
@@ -14,13 +13,21 @@
 //============================================================================
 */
 // EXTRA GLOBALS!
-UINT32 test_array[10],test_array_2[10], playback_array[10],playback_array2[10];
+UINT16 test_array[100], test_array2[100];
 volatile int idx = 0;
 volatile UINT32 count = 1;
 char X = 1;
-//UINT8 Path_1[500]; // possible PATH array! attemting to use const for nvm!
 
 
+
+int path_0[10] ={0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F};
+int path_1[10] ={0x8F, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F, 0x8F};
+int path_2[10] ={0x9F, 0x9F, 0x9F, 0x9F, 0x9F, 0x9F, 0x9F, 0x9F, 0x9F, 0x9F};
+int * paths [3] = {path_0, path_1, path_2};
+
+
+
+/* MOTOR ENCODER SAMPLER AND SUMMER*/
 void timer5_init(void){
     T5CON = 0x0000; // Stop the timer and clear the control register,
     TMR5 = 0x0000; // Clear the timer register
@@ -29,61 +36,55 @@ void timer5_init(void){
     // set up the core timer interrupt with a Priority of 4 and zero sub-priority
     ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
 }
-
-/* MOTOR ENCODER SAMPLER AND SUMMER*/
-
 void __ISR(_TIMER_5_VECTOR, ipl2) _Timer5Handler(void){
    
     // Grey Counter bit
-    static UINT8 toggle = 0;
-    
+    static UINT8 toggle1 = 0, toggle2 = 0;
     unsigned char ob_2 = Obstacle_2;
-    //Not in a path  mode
-    //if(mode==IDLE){toggle = 0; count = 1; mT5ClearIntFlag(); return;}
-    if (!( (mode==RECORDING_PATH) || (mode==PLAYBACK_PATH) ) ){
-        toggle = 0; count = 1; mT5ClearIntFlag(); return;
-    }
+    
     // Don't deal w/ encoder/timer if obstacle detected, OC taken care of in Main!
     if(ob_2){mT5ClearIntFlag();return;}
-    //==============================ENCODER LOGIC========================//
-    // Increment encoder_val if bit has been toggled!
-    if (PORTAbits.RA0 != toggle){
-        encoder_count++;
-    }    
-    // Update toggle value 
-    toggle = PORTAbits.RA0;
+    // for playback, just deal w/ count and index
+    if(mode==PLAYBACK_PATH){if( ( (++count) % 5000)==0){idx++;} mT5ClearIntFlag(); return;}
+    // Non Record/Playback --> dont care!
+    if (!(mode==RECORDING_PATH)){toggle1 = 0; count = 1; mT5ClearIntFlag(); return;}
     
-    // Record count in memory
+    // Record count in memory while recording
     count = (++count) % 5000;
+    
+    //==============================ENCODER LOGIC========================//
+    // Increment encoder_val if bit has been toggle1d!
+    if (LEFT_ENCODER != toggle1){encoder1_count++;}
+    if (RIGHT_ENCODER != toggle2){encoder2_count++;}
+    // Update toggle1 value 
+    toggle1 = LEFT_ENCODER;
+    toggle2 = RIGHT_ENCODER;
+    
     if(count==0){
         //we only have 10 spaces in array atm
-        if(idx>=10){
+        if(idx>=100){
             idx = 0;
             count = 1;
-            if(mode == PLAYBACK_PATH){
-                mode = PLAYBACK_VOICE;
-                return;
-            }
             mode = RECORDING_VOICE;
             
             asm("nop");
             return;
         }
-        if(mode==RECORDING_PATH)test_array[idx] = encoder_count;
-        if(mode==PLAYBACK_PATH) playback_array[idx] = encoder_count;
+        test_array[idx] = encoder1_count;
+        test_array2[idx] = encoder2_count;
         idx++;
-        encoder_count=0;
+        encoder1_count=0;
+        encoder2_count=0;
     }    
     //=========================================================//
     mT5ClearIntFlag(); // clear the interrupt flag
     asm("nop");
  }
-
 void pwm1_init(){
     OC1CON = 0x0000; // PWM off
     T2CON  = 0x0000; // Timer 2 w/ prescaler of 64
-    OC1R   = 0x001; // Original duty cycle 
-    OC1RS  = 0x002; // OC1RS is used to load new duty cycles!
+    OC1R   = 0x000; // Original duty cycle 
+    OC1RS  = 0x000; // OC1RS is used to load new duty cycles!
     OC1CON = 0x0006; // PWM Mode
     PR2    = 0x00AF; // Timer's period
     T2CONSET  = 0x8020; // start Timer2
@@ -92,8 +93,8 @@ void pwm1_init(){
 void pwm2_init(){
     OC2CON = 0x0000; // PWM off
     T3CON  = 0x0000; // Timer 3 w/ prescaler of 64
-    OC2R   = 0x001; // Original duty cycle 
-    OC2RS  = 0x002; // OC2RS is used to load new duty cycles!
+    OC2R   = 0x000; // Original duty cycle 
+    OC2RS  = 0x000; // OC2RS is used to load new duty cycles!
     OC2CON = 0x0006; // PWM Mode
     PR3    = 0x00AF; // Timer3's period
     T3CONSET  = 0x8020; // start Timer3
@@ -143,12 +144,12 @@ void Initializations(){
     /*=========     TIMER1    ===========*/
     //ultrasonic_init();
     /*=========     TIMER4   (PUSHBUTTON) ===========*/
-    //pushbutton_init();
+    pushbutton_init();
     /*=========     TIMER5  (ENCODERS)  ===========*/
     //timer5_init();
     /*=========     PWM (TIMERS 2 and 3)      ===========*/
-    //pwm1_init(); // Output is RD0
-    //pwm2_init(); // Output is RD1
+    pwm1_init(); // Output is RD0
+    pwm2_init(); // Output is RD1
     /*=========     I2C       ===========*/
     //isd_init();
     /*=========== Interrupts    ========*/
@@ -161,67 +162,114 @@ void ShortDelay(UINT32 DelayCount){                   // Delay Time (CoreTimer T
 void delay_seconds(UINT8 secs){
     ShortDelay(secs*1000000*US_TO_CT_TICKS);
 }
-
-//===================== MOTOR functions for Testing==================
-/*
-void motor1_off(){
-    PORTBbits.RB4 = 0;
-    PORTBbits.RB5 = 0;
-    OC1RS = 0x00;
-}
-void motor1_on(unsigned char speed){
-    PORTBbits.RB4 = 1;
-    PORTBbits.RB5 = 1;
-    OC1RS = 0x80;
-}
-void motor2_off(){
-    PORTBbits.RB5 = 0;
-    OC2RS = 0x00;
-}
-void motor2_on(unsigned char speed){
-    PORTBbits.RB5 = 1;
-    OC2RS = speed;
-}
- */
-//====================================================================
-
+void single_beep(){
+        char i;
+        for(i=0;i<100;i++){
+            LATAbits.LATA3 = 1;
+            ShortDelay(300*US_TO_CT_TICKS);
+            LATAbits.LATA3 = 0;
+            ShortDelay(700*US_TO_CT_TICKS);
+            asm("nop");
+        }
+        
+    }
 /* 0x5F on PWM = 2A motor encoders per half second*/
 int main(void)
 {       
     unsigned char ob_1 = 0, ob_2 = 0;
     int i = 0;
-   int  oc_values[10] = {0x3F, 0x2F, 0x1F, 0x1F, 0x2F, 0x3F, 0x2F, 0x1F, 0x0F, 0x0F};    
    
+    UINT16 oc1_vals[10] = {0x6F, 0x7F, 0x8F, 0x9F, 0x6F, 0x7F, 0x8F, 0x9F, 0x6F, 0x7F};
+    UINT16 oc2_vals[10] = {0x6F, 0x7F, 0x8F, 0x9F, 0x6F, 0x7F, 0x8F, 0x9F, 0x6F, 0x7F};
+    
     /* RUN INITIALIZATIONS*/
     Initializations();
 
-    /* TESTING PWM + ENCODER LOOP*/
+    mode=IDLE;
+    LATAbits.LATA2 = 0;
+    LATAbits.LATA3 = 0;
     
-    PORTAbits.RA2 = 0;
-    PORTAbits.RA3 = 0;
-    //while(1);
-    for(i=0;i<10;i++){test_array[i]=0x00; test_array_2[i] = 0x00;} // initialize test_array
+    
+    // initialize test_array
+    //for(i=0;i<100;i++){test_array[i]=0xFF; test_array2[i] = 0xFF;}
+    
     i=0;
-    PORTBbits.RB4 = 0; OC1RS = 0x00; OC2RS = 0x00;
-    
+    LATBbits.LATB4 = 0; LATBbits.LATB5 = 0; OC1RS = 0x00; OC2RS = 0x00;
     delay_seconds(1);
-    // ULTRASONIC TEST LOOP
+    //mode = MOTOR_PSSC;
     
-    void beep(UINT8 number_of_beeps){
+    LATAbits.LATA2 = 1; 
+    //while(1){}
+    
+    while(1){
+        /*========= CHECK OBSTACLE =============*/
+    /*
+        ob_2 = Obstacle_2;
+        if(ob_2){
+            OC1RS =0x00;OC2RS=0x00; 
+            LATAbits.LATA2 = 1;     
+            single_beep();
+                 continue;
+        }
+        else{LATAbits.LATA2 = 0;}
+    */
+        /*====== OBSTACLE-FREE =================*/
+        if (mode == MOTOR_PSSC){
+            
+            OC1RS = path;
+            OC2RS = oc2_vals[i];
+            ShortDelay(500000*US_TO_CT_TICKS);
+            i = (i+1);
+            if (i==10){mode = IDLE;}
+        }
+        /*
+        // Obstacle - Free!
+        else if (mode==RECORDING_PATH){
+            OC1RS = 0x00; OC2RS = 0x00;
+        }
+         */
+        else if (mode==PLAYBACK_PATH){
+            // get PWM from encoder array   
+            for (i=0; i < 10; i++){
+            OC1RS = paths[path][i];
+            OC2RS = paths[path][i];
+            ShortDelay(100000*US_TO_CT_TICKS);
+            }
+            mode = IDLE;
+        }
+        // kill motor if not testing   
         
-        LATBbits.LATB4 = 1;
-        ShortDelay(250*US_TO_CT_TICKS);
-        LATBbits.LATB4 = 0;
-        ShortDelay(750*US_TO_CT_TICKS);
-        asm("nop");
-        
+         else{i = 0; OC1RS=0; OC2RS = 0x00;}
     }
+
+// 5F: 2A
+    // 96:42
+    // max: 
     
+} // end main
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ULTRASONIC TEST LOOP
     
+    /*
     while(1) {
-        
+        delay_seconds(2);
+        single_beep();
+        LATBbits.LATB4 = 0;
     }
-    
+     */
     /*
     while(1){
         PORTBbits.RB8 = 1;
@@ -231,11 +279,7 @@ int main(void)
     }
     */
     //========NVM TESTING====================
-    //#define NVM_PROGRAM_PAGE 0x1d007000
 /*
-#define NVM_PROGRAM_PAGE 0xbd008000
-    #define NVM_PAGE_SIZE	4096
-    #define NVM_ROW_SIZE 512
     unsigned char page_buff[NVM_PAGE_SIZE];
     unsigned char data_buff[NVM_ROW_SIZE];
     for(i=0; i<NVM_ROW_SIZE; i++){data_buff[i]=i;}
@@ -254,45 +298,11 @@ int main(void)
     asm("nop");asm("nop");asm("nop");
     asm("nop");
     }
-    *///===========================
+    */
+    //======================================
     
-    
-    
-    
-    mode=RECORDING_PATH;
-    while(1){
-        ob_2 = Obstacle_2;
-        if(ob_2){OC1RS =0x00;OC2RS=0x00;PORTAbits.RA3 = 1; continue;}
-        
-        // Obstacle - Free!
-        PORTAbits.RA3 = 0;
-        if (mode==RECORDING_PATH){
-            PORTBbits.RB4 = 0;
-            OC1RS = oc_values[idx];
-            OC2RS = oc_values[idx];
-        }
-        else if (mode==PLAYBACK_PATH){
-            // get PWM from encoder array
-            PORTBbits.RB4 = 0;
-            OC1RS = test_array[idx]  * ENCODER_MULTIPLIER;
-            OC2RS = test_array_2[idx] * ENCODER_MULTIPLIER;
-        }
-        else if (mode == RECORDING_VOICE){
-             PORTBbits.RB4 = 0;
-            OC1RS = 0x00; OC2RS = 0x00;
-            delay_seconds(1);
-            mode = PLAYBACK_PATH;i=0;
-        }
-        // kill motor if not testing   
-        else{i = 0; OC1RS=0; OC2RS = 0x00; PORTBbits.RB4 = 0;}
-    }
 
-// 5F: 2A
-    // 96:42
-    // max: 
-    
-} // end main
-    /*    TESTING ISD5116 LOOP*/
+/*    TESTING ISD5116 LOOP*/
     /*    while(1)
     {
         
@@ -343,3 +353,26 @@ int main(void)
     
     } */
     
+
+//===================== MOTOR functions for Testing==================
+/*
+void motor1_off(){
+    PORTBbits.RB4 = 0;
+    PORTBbits.RB5 = 0;
+    OC1RS = 0x00;
+}
+void motor1_on(unsigned char speed){
+    PORTBbits.RB4 = 1;
+    PORTBbits.RB5 = 1;
+    OC1RS = 0x80;
+}
+void motor2_off(){
+    PORTBbits.RB5 = 0;
+    OC2RS = 0x00;
+}
+void motor2_on(unsigned char speed){
+    PORTBbits.RB5 = 1;
+    OC2RS = speed;
+}
+ */
+//====================================================================

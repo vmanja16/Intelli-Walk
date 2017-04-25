@@ -3,10 +3,12 @@
 
 #include <xc.h>
 #include <plib.h>
+#include "settings.h"
+#include "ports.h"
 
 #define MS_50 5000
 #define ULTRA_THRESHOLD_1 200
-#define ULTRA_THRESHOLD_2 400
+#define ULTRA_THRESHOLD_2 60
 
 // Timer 1 configuration function
 void ultrasonic_init(void);

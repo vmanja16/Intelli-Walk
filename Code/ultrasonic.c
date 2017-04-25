@@ -15,10 +15,15 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
     
     Timer1_count = (Timer1_count+1)  % MS_50; // Update timer count mod 50 ms
     // 10 microsecond pulse to sensors!
-    if (Timer1_count <= 1){ PORTBbits.RB6 =  1; PORTBbits.RB8 = 1;}
-    else{PORTBbits.RB6 = 0; PORTBbits.RB8 = 0;} 
+    
+    static char edge_2_flag = 0;
+    static ultrasonic_state ob_2_state= FULL_CLEAR;
+    
+    if (Timer1_count <= 1){ PORTBbits.RB6 =  1;}
+    else{PORTBbits.RB6 = 0;} 
     
     // Updating Echo reading
+    /*
     if (PORTBbits.RB7){Echo1_count ++;}
     else{
         if (Echo1_count > 5){
@@ -31,19 +36,37 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
             Echo1_count = 0; // reset Echo count
         }
     }
-    if (PORTBbits.RB9){Echo2_count ++;}
-    else{
-        if (Echo2_count > 5){
-            if (Echo2_count < ULTRA_THRESHOLD_2 ){
-                Obstacle_2 = 1; // Obstacle detected
-            }
-            else{
-                
-                Obstacle_2 = 0; // No obstacle
-            }
-            Echo2_count = 0; // reset Echo count
-        }
+    */
+    // reset echo count and update state on rising edge
+    if ((edge_2_flag==0) && (ULTRASONIC_2==1) ){
+        if (Echo2_count < ULTRA_THRESHOLD_2 ){
+         //    Obstacle_2 = 1; // Obstacle detected
+             if( (ob_2_state==OBSTACLE_DETECTED) || (ob_2_state==POSSIBLE_OBSTACLE) ){
+                 ob_2_state = OBSTACLE_DETECTED;
+             }
+             else{ob_2_state = POSSIBLE_OBSTACLE;}
+         }
+         else{
+         //    Obstacle_2 = 0; // No obstacle
+             if( (ob_2_state==FULL_CLEAR) || (ob_2_state==POSSIBLE_CLEAR) ){
+                 ob_2_state= FULL_CLEAR;
+             }
+             else{ob_2_state = POSSIBLE_CLEAR;}
+         }
+        Echo2_count = 0;
     }
+    
+    // Increment Echo_count!
+    if (ULTRASONIC_2){Echo2_count ++;}
+ 
+         // OUTPUT LOGIC
+        if(ob_2_state==FULL_CLEAR){Obstacle_2 = 0;}
+        if(ob_2_state==OBSTACLE_DETECTED){Obstacle_2=1;}
+    
+    
+    edge_2_flag = ULTRASONIC_2; // update prev edge status
     mT1ClearIntFlag(); // clear the interrupt flag
     
  }
+
+

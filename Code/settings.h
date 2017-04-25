@@ -14,11 +14,17 @@
 /* Type definitions */
 
   // PIC Operating modes
-typedef enum {IDLE, RECORDING_PATH, RECORDING_VOICE, PLAYBACK_VOICE, PLAYBACK_PATH} op_mode;
+typedef enum {IDLE, RECORDING_PATH, RECORDING_VOICE, PLAYBACK_VOICE, PLAYBACK_PATH, MOTOR_PSSC} op_mode;
   // ISD Operating modes
 typedef enum { playing, recording, stopped } isd_mode;
   // ISD Stop Modes
 typedef enum { ISD_NO_I2C_STOP, ISD_I2C_STOP } isd_i2c_stop_mode;
+
+typedef enum {OBSTACLE_DETECTED, POSSIBLE_OBSTACLE, POSSIBLE_CLEAR, FULL_CLEAR} ultrasonic_state;
+
+void ShortDelay(UINT32 DelayCount);
+void delay_seconds(UINT8 secs);
+void single_beep();
 
 
 #endif /* _SETTINGS_H */
