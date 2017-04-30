@@ -6,11 +6,13 @@
 #include <xc.h>
 #include "settings.h"
 #include "ports.h"
+#include "ultrasonic.h"
 
 extern volatile op_mode mode;
 extern volatile int idx;
 extern volatile int path;
-
+extern volatile int playback_path, record_path;
+extern volatile UINT8 * paths[10];
 #define SAMPLING_PERIOD 0x0190 // time between checking status of button
 
 

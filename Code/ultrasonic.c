@@ -4,14 +4,19 @@
 void ultrasonic_init(void){
     T1CON = 0x0000; // Stop the timer and clear the control register,
     TMR1 = 0x0000; // Clear the timer register
-    PR1 = 0x0190; // Load the period register with value 400, since 400 ticks = 10 microsecond
+    PR1 = 0x0191; // Load the period register with value 400, since 400 ticks = 10 microsecond
     T1CONSET = 0x8000; // Start the timer
     // set up the core timer interrupt with a Priority of 2 and zero sub-priority
-    ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_2);
+    ConfigIntTimer1(T1_INT_ON | T1_INT_PRIOR_4);
+}
+
+void ultrasonic_off(void){
+    CloseTimer1();
+    Obstacle_2 = 0;
 }
 
 /* ULTRASONIC SENSORS ISR*/
-void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
+void __ISR(_TIMER_1_VECTOR, ipl4) _Timer1Handler(void){
     
     Timer1_count = (Timer1_count+1)  % MS_50; // Update timer count mod 50 ms
     // 10 microsecond pulse to sensors!
@@ -19,8 +24,8 @@ void __ISR(_TIMER_1_VECTOR, ipl2) _Timer1Handler(void){
     static char edge_2_flag = 0;
     static ultrasonic_state ob_2_state= FULL_CLEAR;
     
-    if (Timer1_count <= 1){ PORTBbits.RB6 =  1;}
-    else{PORTBbits.RB6 = 0;} 
+//    if (Timer1_count <= 1){ PORTBbits.RB6 =  1;}
+//    else{PORTBbits.RB6 = 0;} 
     
     // Updating Echo reading
     /*

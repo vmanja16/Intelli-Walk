@@ -14,8 +14,8 @@
     // ISD5116 A0-A1 outputs (grounded)
     #define ISD_AO_TRIS TRISBbits.TRISB2
     #define ISD_A1_TRIS TRISBbits.TRISB3
-    #define ISD_A0      LATBbits.LATB0
-    #define ISD_A1      LATBbits.LATB1
+    #define ISD_A0      LATBbits.LATB2
+    #define ISD_A1      LATBbits.LATB3
 
     // ISD5116 SDA/SCL inputs
     #define ISD_SCL_TRIS TRISGbits.TRISG2

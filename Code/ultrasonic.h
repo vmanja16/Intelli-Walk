@@ -8,7 +8,7 @@
 
 #define MS_50 5000
 #define ULTRA_THRESHOLD_1 200
-#define ULTRA_THRESHOLD_2 60
+#define ULTRA_THRESHOLD_2 8
 
 // Timer 1 configuration function
 void ultrasonic_init(void);

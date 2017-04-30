@@ -25,6 +25,7 @@ typedef enum {OBSTACLE_DETECTED, POSSIBLE_OBSTACLE, POSSIBLE_CLEAR, FULL_CLEAR} 
 void ShortDelay(UINT32 DelayCount);
 void delay_seconds(UINT8 secs);
 void single_beep();
-
+void quick_beep();
+void single_beep_high();
 
 #endif /* _SETTINGS_H */
